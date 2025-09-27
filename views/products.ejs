@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html data-bs-theme="<%= locals.settings.theme || 'light' %>">
+<head>
+    <title>Arumi POS - Produk</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        .product-card {
+            transition: transform .2s, box-shadow .2s;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .card-img-top {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        .stock-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+        #reader {
+            width: 100%;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body class="d-flex flex-column min-vh-100">
+    <%- include('_navbar', { user: user, active: 'products' }) %>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3>Manajemen Produk</h3>
+            <div>
+                <a href="/stock-adjustment" class="btn btn-info"><i class="bi bi-box-seam"></i> Penyesuaian Stok</a>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#productModal"><i class="bi bi-plus-circle"></i> Tambah Produk</button>
+            </div>
+        </div>
+
+        <% if (typeof message !== 'undefined' && message) { %>
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                <%= message %>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <% } %>
+
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+            <% products.forEach(product => { %>
+                <div class="col">
+                    <div class="card h-100 product-card">
+                        <img src="<%= product.image_url ? product.image_url : 'https://placehold.co/400x300/f8f9fa/6c757d?text=No+Image' %>" class="card-img-top" alt="<%= product.name %>">
+                        
+                        <% 
+                        let stockBgClass = 'bg-success';
+                        if (product.stock < 10) stockBgClass = 'bg-danger';
+                        else if (product.stock < 50) stockBgClass = 'bg-warning';
+                        %>
+                        <span class="badge <%= stockBgClass %> stock-badge">Stok: <%= product.stock %></span>
+
+                        <div class="card-body">
+                            <h5 class="card-title"><%= product.name %></h5>
+                            <p class="card-text text-muted"><%= product.sku %></p>
+                            <p class="card-text mb-1">Harga Modal: Rp <%= (product.harga_modal || 0).toLocaleString('id-ID') %></p>
+                            <p class="card-text fs-5 fw-bold">Harga Jual: Rp <%= product.price.toLocaleString('id-ID') %></p>
+                        </div>
+                        <div class="card-footer bg-transparent border-top-0 pb-3">
+                            <a href="/stock-history/<%= product.id %>" class="btn btn-sm btn-outline-secondary w-100 mb-2"><i class="bi bi-clock-history"></i> Riwayat Stok</a>
+                             <button class="btn btn-sm btn-warning edit-btn w-100 mb-2" 
+                                    data-id="<%= product.id %>" 
+                                    data-name="<%= product.name %>" 
+                                    data-harga_modal="<%= product.harga_modal %>"
+                                    data-price="<%= product.price %>" 
+                                    data-sku="<%= product.sku %>"
+                                    data-stock="<%= product.stock %>"
+                                    data-image_url="<%= product.image_url %>"
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#productModal">
+                                <i class="bi bi-pencil"></i> Ubah
+                            </button>
+                            <form action="/products/delete/<%= product.id %>" method="POST" class="d-inline w-100" onsubmit="return confirm('Apakah Anda yakin ingin menghapus produk ini: <%= product.name %>?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger w-100"><i class="bi bi-trash"></i> Hapus</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            <% }) %>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="productModal" tabindex="-1" aria-labelledby="productModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form id="productForm" action="" method="POST" enctype="multipart/form-data">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="productModalLabel">Tambah Produk</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Nama Produk</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="harga_modal" class="form-label">Harga Modal</label>
+                                <input type="number" class="form-control" id="harga_modal" name="harga_modal" value="0" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="price" class="form-label">Harga Jual</label>
+                                <input type="number" class="form-control" id="price" name="price" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="stock" class="form-label">Stok</label>
+                                <input type="number" class="form-control" id="stock" name="stock" value="0" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="sku" class="form-label">SKU / Barcode</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="sku" name="sku">
+                                <button class="btn btn-outline-secondary" type="button" id="scanSkuBtn"><i class="bi bi-upc-scan"></i> Scan</button>
+                            </div>
+                        </div>
+
+                        <div id="scanner-container" class="mt-2" style="display: none;">
+                            <div id="reader"></div>
+                            <button class="btn btn-danger btn-sm mt-2" type="button" id="stopScanBtn">Stop Scanning</button>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="image" class="form-label">Gambar Produk</label>
+                            <input class="form-control" type="file" id="image" name="image" accept="image/*">
+                            <small class="form-text text-muted">Kosongkan jika tidak ingin mengubah gambar.</small>
+                        </div>
+                        <img id="imagePreview" src="" class="img-fluid rounded mb-2" style="max-height: 150px; display: none;">
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                        <button type="submit" class="btn btn-primary">Simpan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
+    <script>
+        const productModal = document.getElementById('productModal');
+        const productForm = document.getElementById('productForm');
+        const modalTitle = document.getElementById('productModalLabel');
+        const imagePreview = document.getElementById('imagePreview');
+        const scannerContainer = document.getElementById('scanner-container');
+        const readerDiv = document.getElementById('reader');
+        const skuInput = document.getElementById('sku');
+        
+        let html5QrCode = null;
+
+        function onScanSuccess(decodedText, decodedResult) {
+            console.log(`Code matched = ${decodedText}`, decodedResult);
+            skuInput.value = decodedText;
+            stopScanner();
+            alert(`SKU berhasil di-scan: ${decodedText}`);
+        }
+
+        function onScanFailure(error) {
+            // console.warn(`Code scan error = ${error}`);
+        }
+
+        function startScanner() {
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
+            }
+            scannerContainer.style.display = 'block';
+            html5QrCode.start(
+                { facingMode: "environment" }, // use back camera
+                {
+                    fps: 10,
+                    qrbox: { width: 250, height: 150 }
+                },
+                onScanSuccess,
+                onScanFailure
+            ).catch(err => {
+                console.error("Unable to start scanning.", err);
+                alert("Error: Tidak dapat memulai scanner. Pastikan Anda memberikan izin kamera.");
+                stopScanner();
+            });
+        }
+
+        function stopScanner() {
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().then(() => {
+                    console.log("QR Code scanning stopped.");
+                }).catch(err => {
+                    console.error("Error stopping the scanner.", err);
+                });
+            }
+            scannerContainer.style.display = 'none';
+        }
+
+        document.getElementById('scanSkuBtn').addEventListener('click', startScanner);
+        document.getElementById('stopScanBtn').addEventListener('click', stopScanner);
+
+        productModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const isEdit = button.classList.contains('edit-btn');
+            
+            productForm.reset();
+            imagePreview.style.display = 'none';
+            imagePreview.src = '';
+
+            if (isEdit) {
+                modalTitle.textContent = 'Ubah Produk';
+                productForm.action = '/products/edit/' + button.dataset.id;
+                document.getElementById('name').value = button.dataset.name;
+                document.getElementById('harga_modal').value = button.dataset.harga_modal;
+                document.getElementById('price').value = button.dataset.price;
+                skuInput.value = button.dataset.sku;
+                document.getElementById('stock').value = button.dataset.stock;
+                const imageUrl = button.dataset.image_url;
+                if (imageUrl && imageUrl !== 'null') {
+                    imagePreview.src = imageUrl;
+                    imagePreview.style.display = 'block';
+                }
+            } else {
+                modalTitle.textContent = 'Tambah Produk';
+                productForm.action = '/products/add';
+            }
+        });
+
+        productModal.addEventListener('hide.bs.modal', function () {
+            stopScanner();
+        });
+
+        document.getElementById('image').addEventListener('change', function(event) {
+            const [file] = event.target.files;
+            if (file) {
+                imagePreview.src = URL.createObjectURL(file);
+                imagePreview.style.display = 'block';
+            }
+        });
+
+        productForm.addEventListener('submit', async function(event) {
+            event.preventDefault(); // Mencegah form submit secara default
+
+            const submitButton = productForm.querySelector('button[type="submit"]');
+            const originalButtonText = submitButton.innerHTML;
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Mengompres...';
+
+            const imageInput = document.getElementById('image');
+            const imageFile = imageInput.files[0];
+
+            const formData = new FormData();
+            formData.append('name', document.getElementById('name').value);
+            formData.append('harga_modal', document.getElementById('harga_modal').value);
+            formData.append('price', document.getElementById('price').value);
+            formData.append('stock', document.getElementById('stock').value);
+            formData.append('sku', skuInput.value);
+
+            // Jika ada file gambar yang dipilih, kompres dulu
+            if (imageFile) {
+                console.log(`Original file size: ${imageFile.size / 1024 / 1024} MB`);
+                const options = {
+                    maxSizeMB: 0.5, // Ukuran maksimal 500KB
+                    maxWidthOrHeight: 1024, // Resolusi maksimal 1024px
+                    useWebWorker: true,
+                    onProgress: (p) => { 
+                        submitButton.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Mengompres... ${p.toFixed(0)}%`;
+                    },
+                };
+
+                try {
+                    const compressedFile = await imageCompression(imageFile, options);
+                    console.log(`Compressed file size: ${compressedFile.size / 1024 / 1024} MB`);
+                    formData.append('image', compressedFile, compressedFile.name);
+                } catch (error) {
+                    console.error('Error saat kompresi:', error);
+                    alert('Gagal mengompres gambar. Silakan coba lagi.');
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = originalButtonText;
+                    return; // Hentikan proses jika kompresi gagal
+                }
+            } 
+            // Jika tidak ada gambar baru, server akan menjaga gambar lama (untuk mode edit)
+
+            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Menyimpan...';
+
+            try {
+                const response = await fetch(productForm.action, {
+                    method: 'POST',
+                    body: formData, // Kirim FormData, bukan form asli
+                });
+
+                if (response.ok) {
+                    // Redirect atau refresh halaman setelah berhasil
+                    window.location.href = '/products';
+                } else {
+                    const errorResult = await response.json();
+                    throw new Error(errorResult.message || 'Gagal menyimpan produk.');
+                }
+            } catch (error) {
+                console.error('Error saat submit:', error);
+                alert(error.message);
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalButtonText;
+            }
+        });
+
+    </script>
+    <%- include('_footer') %>
+</body>
+</html>

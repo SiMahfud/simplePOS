@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="<%= locals.settings.theme || 'light' %>">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manajemen Pengguna</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+</head>
+<body class="d-flex flex-column min-vh-100">
+    <%- include('_navbar') %>
+
+    <main class="container mt-4 flex-grow-1">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2><i class="bi bi-people"></i> Manajemen Pengguna</h2>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                <i class="bi bi-plus-circle"></i> Tambah Pengguna
+            </button>
+        </div>
+
+        <% if (locals.message) { %>
+            <div class="alert alert-<%= message.type %>" role="alert">
+                <%= message.text %>
+            </div>
+        <% } %>
+
+        <div class="card">
+            <div class="card-body">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th class="text-end">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% users.forEach(u => { %>
+                            <tr>
+                                <td><%= u.id %></td>
+                                <td><%= u.username %></td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-warning me-1" data-bs-toggle="modal" data-bs-target="#editUserModal-<%= u.id %>">
+                                        <i class="bi bi-pencil-square"></i> Ubah Password
+                                    </button>
+                                    <% if (user.id !== u.id) { %>
+                                        <form action="/users/delete/<%= u.id %>" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus pengguna ini?');">
+                                            <button type="submit" class="btn btn-sm btn-danger">
+                                                <i class="bi bi-trash"></i> Hapus
+                                            </button>
+                                        </form>
+                                    <% } else { %>
+                                        <button class="btn btn-sm btn-danger" disabled><i class="bi bi-trash"></i> Hapus</button>
+                                    <% } %>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add User Modal -->
+    <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form action="/users/add" method="POST">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addUserModalLabel">Tambah Pengguna Baru</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">Simpan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Modals -->
+    <% users.forEach(u => { %>
+    <div class="modal fade" id="editUserModal-<%= u.id %>" tabindex="-1" aria-labelledby="editUserModalLabel-<%= u.id %>" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form action="/users/edit/<%= u.id %>" method="POST">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editUserModalLabel-<%= u.id %>">Ubah Password untuk <%= u.username %></h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="new_password" class="form-label">Password Baru</label>
+                            <input type="password" class="form-control" id="new_password" name="new_password" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <% }); %>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <%- include('_footer') %>
+</body>
+</html>

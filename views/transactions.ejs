@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="<%= locals.settings.theme || 'light' %>">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transactions</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        body {
+        }
+        .transaction-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+            transition: transform .2s;
+        }
+        .transaction-card:hover {
+            transform: translateY(-5px);
+        }
+        .transaction-card .card-header {
+            background-color: #343a40;
+            color: white;
+            border-top-left-radius: 15px;
+            border-top-right-radius: 15px;
+            font-weight: bold;
+        }
+        .transaction-card .card-body {
+            padding: 1.5rem;
+        }
+        .total-amount {
+            font-size: 1.75rem;
+            font-weight: bold;
+            color: #28a745;
+        }
+        .item-list {
+            list-style: none;
+            padding-left: 0;
+        }
+        .item-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #eee;
+        }
+        .item-list li:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body class="d-flex flex-column min-vh-100">
+    <%- include('_navbar', { active: 'transactions' }) %>
+    <main class="container mt-4 flex-grow-1">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2">Transaction History</h1>
+        </div>
+
+        <!-- Filter and Search -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search by product name...">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-calendar-range"></i></span>
+                    <input type="date" id="startDate" class="form-control">
+                    <input type="date" id="endDate" class="form-control">
+                </div>
+            </div>
+        </div>
+
+        <div class="row" id="transaction-list">
+            <% if (transactions.length === 0) { %>
+                <div class="col-12">
+                    <div class="alert alert-info text-center">
+                        <i class="bi bi-info-circle-fill"></i> No transactions found.
+                    </div>
+                </div>
+            <% } else { %>
+                <% transactions.forEach(transaction => { %>
+                    <div class="col-md-6 col-lg-4 transaction-item" data-timestamp="<%= transaction.timestamp %>">
+                        <div class="card transaction-card">
+                            <div class="card-header d-flex justify-content-between">
+                                <span><i class="bi bi-receipt"></i> #<%= transaction.id %></span>
+                                <span><%= new Date(transaction.timestamp).toLocaleDateString() %></span>
+                            </div>
+                            <div class="card-body">
+                                <div class="text-center mb-3">
+                                    <p class="mb-1 text-muted">Total Amount</p>
+                                    <p class="total-amount">Rp <%= transaction.total_amount.toLocaleString() %></p>
+                                </div>
+                                <h6 class="card-subtitle mb-2 text-muted">Items:</h6>
+                                <ul class="item-list">
+                                    <% transaction.items.forEach(item => { %>
+                                        <li data-name="<%= item.name.toLowerCase() %>">
+                                            <span><%= item.name %> (x<%= item.quantity %>)</span>
+                                            <span>Rp <%= (item.quantity * item.price_per_item).toLocaleString() %></span>
+                                        </li>
+                                    <% }); %>
+                                </ul>
+                                <div class="text-center mt-3">
+                                    <a href="/transactions/<%= transaction.id %>" class="btn btn-sm btn-outline-primary">View Details</a>
+                                </div>
+                            </div>
+                            <div class="card-footer text-muted text-center">
+                                <%= new Date(transaction.timestamp).toLocaleTimeString() %>
+                            </div>
+                        </div>
+                    </div>
+                <% }); %>
+            <% } %>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchInput = document.getElementById('searchInput');
+            const startDateInput = document.getElementById('startDate');
+            const endDateInput = document.getElementById('endDate');
+
+            function filterTransactions() {
+                const searchText = searchInput.value.toLowerCase();
+                const startDate = startDateInput.value ? new Date(startDateInput.value).setHours(0, 0, 0, 0) : null;
+                const endDate = endDateInput.value ? new Date(endDateInput.value).setHours(23, 59, 59, 999) : null;
+
+                document.querySelectorAll('.transaction-item').forEach(card => {
+                    const timestamp = new Date(card.dataset.timestamp).getTime();
+                    const items = Array.from(card.querySelectorAll('.item-list li'));
+                    
+                    const matchesSearch = searchText === '' || items.some(item => item.dataset.name.includes(searchText));
+                    const matchesStartDate = startDate === null || timestamp >= startDate;
+                    const matchesEndDate = endDate === null || timestamp <= endDate;
+
+                    if (matchesSearch && matchesStartDate && matchesEndDate) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            }
+
+            searchInput.addEventListener('keyup', filterTransactions);
+            startDateInput.addEventListener('change', filterTransactions);
+            endDateInput.addEventListener('change', filterTransactions);
+        });
+    </script>
+    <%- include('_footer') %>
+</body>
+</html>

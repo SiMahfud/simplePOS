@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html data-bs-theme="<%= locals.settings.theme || 'light' %>">
+<head>
+    <title>Arumi POS - Laporan</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body class="d-flex flex-column min-vh-100">
+    <%- include('_navbar', { user: user, active: 'statistics' }) %>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3>Laporan Penjualan</h3>
+        </div>
+
+        <!-- Date Range Filter -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="GET" action="/statistics" class="row g-3 align-items-center">
+                    <div class="col-md-5">
+                        <label for="startDate" class="form-label">Tanggal Mulai</label>
+                        <input type="date" class="form-control" id="startDate" name="startDate" value="<%= startDate %>">
+                    </div>
+                    <div class="col-md-5">
+                        <label for="endDate" class="form-label">Tanggal Selesai</label>
+                        <input type="date" class="form-control" id="endDate" name="endDate" value="<%= endDate %>">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">Filter</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card text-white bg-primary mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Penjualan</h5>
+                        <p class="card-text fs-4"><%= locals.settings.currency_symbol || 'Rp' %> <%= (typeof salesInRange !== 'undefined' ? salesInRange : 0).toLocaleString('id-ID') %></p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-success mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Transaksi</h5>
+                        <p class="card-text fs-4"><%= typeof transactionsInRange !== 'undefined' ? transactionsInRange : 0 %> Transaksi</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-info mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">Produk Terjual</h5>
+                        <p class="card-text fs-4"><%= typeof itemsSoldInRange !== 'undefined' ? itemsSoldInRange : 0 %> Item</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-warning mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">Pelanggan</h5>
+                        <p class="card-text fs-4"><%= typeof customersInRange !== 'undefined' ? customersInRange : 0 %></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        Produk Terlaris
+                    </div>
+                    <div class="card-body">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Nama Produk</th>
+                                    <th>Terjual</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% if (typeof topProducts !== 'undefined' && topProducts.length > 0) { %>
+                                    <% topProducts.forEach((product, index) => { %>
+                                        <tr>
+                                            <td><%= index + 1 %></td>
+                                            <td><%= product.name %></td>
+                                            <td><%= product.total_sold %></td>
+                                        </tr>
+                                    <% }) %>
+                                <% } else { %>
+                                    <tr>
+                                        <td colspan="3" class="text-center">Tidak ada produk terjual pada rentang tanggal ini.</td>
+                                    </tr>
+                                <% } %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        Transaksi Terakhir
+                    </div>
+                    <div class="card-body">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Waktu</th>
+                                    <th>Total</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% if (typeof recentTransactions !== 'undefined' && recentTransactions.length > 0) { %>
+                                    <% recentTransactions.forEach(trx => { %>
+                                        <tr>
+                                            <td><%= new Date(trx.timestamp).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Jakarta' }) %></td>
+                                            <td><%= locals.settings.currency_symbol || 'Rp' %> <%= trx.total_amount.toLocaleString('id-ID') %></td>
+                                            <td><a href="/transactions/<%= trx.id %>" class="btn btn-sm btn-outline-primary">Detail</a></td>
+                                        </tr>
+                                    <% }) %>
+                                <% } else { %>
+                                    <tr>
+                                        <td colspan="3" class="text-center">Tidak ada transaksi pada rentang tanggal ini.</td>
+                                    </tr>
+                                <% } %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <%- include('_footer') %>
+</body>
+</html>
