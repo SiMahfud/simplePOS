@@ -1,5 +1,5 @@
 const db = require('../database.js');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 exports.getUsers = (req, res) => {
     const sql = "SELECT id, username FROM users";
